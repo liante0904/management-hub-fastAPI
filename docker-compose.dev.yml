@@ -1,0 +1,22 @@
+# 로컬 개발/테스트용 docker-compose (GHCR pull 대신 로컬 빌드)
+services:
+  fastapi:
+    build: .
+    container_name: management-hub-fastapi-dev
+    ports:
+      - "8003:8000"
+    volumes:
+      - .:/app
+    command: ["/opt/venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      - POSTGRES_HOST=10.0.0.111
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=ssh_reports_hub
+      - POSTGRES_USER=ssh_reports_hub
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - APP_ENV=dev
+      - TZ=Asia/Seoul
+      - DISK_CHECK_PATH=/
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
