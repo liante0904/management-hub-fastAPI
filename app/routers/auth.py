@@ -47,7 +47,16 @@ def verify_telegram(data: dict) -> tuple[bool, str]:
     if not check_hash:
         return False, "Missing Telegram hash"
 
-    data_list = [f"{k}={v}" for k, v in sorted(data.items()) if k != "hash" and v is not None]
+    # hash 계산에 사용할 데이터만 추출 (None이나 빈 값 제외, hash 필드 제외)
+    data_list = []
+    for k, v in sorted(data.items()):
+        if k == "hash" or v is None or v == "":
+            continue
+        # auth_date가 0인 경우(기본값)도 실제 텔레그램 데이터가 아닐 확률이 높으므로 제외
+        if k == "auth_date" and v == 0:
+            continue
+        data_list.append(f"{k}={v}")
+    
     data_check_string = "\n".join(data_list)
     secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
     expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
