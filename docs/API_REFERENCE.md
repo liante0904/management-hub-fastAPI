@@ -52,6 +52,15 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8003/admin/metrics
   "cpu": { "percent": 12.5, "cores": 4, "frequency_mhz": 2400.0 },
   "memory": { "total_gb": 23.4, "used_gb": 8.2, "percent": 35.0 },
   "disk": { "total_gb": 100.0, "used_gb": 45.0, "percent": 45.0 },
+  "oci2": {
+    "cpu_percent": 10.5,
+    "total_gb": 16.0,
+    "used_gb": 4.2,
+    "percent": 26.3,
+    "disk_total_gb": 50.0,
+    "disk_used_gb": 12.0,
+    "disk_percent": 24
+  },
   "database": { "status": "online", "latency_ms": 2.1 },
   "reports": { "total": 280664, "today_inserts": 142 },
   "last_activity": { "last_save_time": "20250101_120000", "last_title": "...", "last_firm": "..." }
@@ -79,7 +88,33 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8003/admin/metrics
 
 ---
 
-## 3. 유저 관리 (`/api/users/*`)
+## 3. DB 테이블 뷰어 (`/admin/db/*`)
+
+### `GET /admin/db/tables`
+
+메인 DB의 테이블 목록 조회.
+
+```json
+{ "tables": ["tbl_sec_reports", "tbm_sec_reports_telegram_users", "..."] }
+```
+
+### `GET /admin/db/query/{table}?limit=50`
+
+특정 테이블의 데이터 미리보기 (Read-only).
+
+```json
+{
+  "table": "tbl_sec_reports",
+  "columns": ["report_id", "firm_nm", "article_title", "..."],
+  "data": [
+    { "report_id": 1, "firm_nm": "...", "article_title": "..." }
+  ]
+}
+```
+
+---
+
+## 4. 유저 관리 (`/api/users/*`)
 
 ### `GET /api/users`
 
@@ -122,9 +157,17 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8003/admin/metrics
 ```
 → `{ "id": 1, "is_admin": true, "updated": true }`
 
+### `DELETE /api/users/{user_id}`
+
+유저 삭제 (관리자 전용).
+
+```json
+{ "id": 1, "deleted": true }
+```
+
 ---
 
-## 4. 레포트 관리 (`/api/reports/*`)
+## 5. 레포트 관리 (`/api/reports/*`)
 
 ### `GET /api/reports`
 
@@ -289,11 +332,14 @@ GET    /admin/health
 GET    /admin/metrics
 GET    /admin/logs
 GET    /admin/logs/view
+GET    /admin/db/tables
+GET    /admin/db/query/{table}
 
 GET    /api/users
 GET    /api/users/{id}
 PUT    /api/users/{id}/status
 PUT    /api/users/{id}/admin
+DELETE /api/users/{id}
 
 GET    /api/reports
 GET    /api/reports/fnguide
@@ -314,14 +360,15 @@ DELETE /api/firms/{order}/boards/{b_order}
 ```
 
 ---
-
 ## 테스트 현황
 
 ```
-63 passed in 0.77s
+86 passed in 1.25s
 
-test_admin.py    ████████  7/7   health, metrics, logs
-test_users.py    ██████████ 11/11  list, get, status, admin toggle
+test_admin.py    ██████████ 10/10  health, metrics(oci2), logs, db viewer
+test_users.py    ██████████ 13/13  list, get, status, admin toggle, delete
+```
+
 test_reports.py  ███████████████████ 24/24  list(8 filters), get, sync, pdf, fnguide, send-history
 test_firms.py    ████████████████ 21/21  firm CRUD + board CRUD
 ```
