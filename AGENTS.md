@@ -60,7 +60,7 @@ internal.management-hub/
 |-----------|------|
 | `ssh-management-hub-fastapi-prod` | Management Hub API (이 프로젝트) |
 | `management-nginx` | Management Hub 전용 리버스 프록시 |
-| `internal-nginx` | 메인 도메인 인그레스 (private-hub 소속) |
+| `internal-nginx` | 메인 도메인 인그레스 |
 | `main-postgres` | 메인 DB (`ssh_reports_hub`) |
 
 ## Deploy Flow

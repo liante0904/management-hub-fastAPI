@@ -10,7 +10,7 @@
 |------|-----|
 | Base URL (prod) | `https://ssh-oci.duckdns.org` |
 | Base URL (dev) | `http://localhost:8003` |
-| 인증 | JWT Bearer Token (private-hub와 동일 키 공유) |
+| 인증 | JWT Bearer Token (Telegram Login → JWT 발급) |
 | Content-Type | `application/json` |
 
 ### 인증 방식

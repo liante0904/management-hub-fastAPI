@@ -1,6 +1,6 @@
 """
 Admin Router — 시스템 메트릭, 로그 브라우징 등 관리자 전용 API
-JWT 인증 기반 (private-hub FastAPI와 동일 키 사용)
+JWT 인증 기반 (Telegram Login → JWT 발급)
 """
 from __future__ import annotations
 
