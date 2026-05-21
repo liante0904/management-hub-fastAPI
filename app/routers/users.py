@@ -168,3 +168,20 @@ async def toggle_admin(
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"id": user_id, "is_admin": body.is_admin, "updated": True}
+
+
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: int,
+    current_admin: dict = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """유저 삭제 (관리자 전용)"""
+    result = db.execute(
+        text("DELETE FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
+        {"uid": user_id},
+    )
+    db.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"id": user_id, "deleted": True}

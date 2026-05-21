@@ -44,6 +44,38 @@ class TestAdminMetrics:
         assert "reports" in data
         assert data["reports"]["total"] >= 0
 
+    def test_metrics_contains_oci2(self, client: TestClient):
+        """oci2 서버 메트릭 필드 포함 여부 확인 (mocking subprocess)"""
+        from unittest.mock import patch, MagicMock
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="%Cpu(s): 10.0 us\nMem: 8000000000 4000000000 2000000000\n/dev/sda1 50000000000 10000000000 40000000000 20% /"
+            )
+            res = client.get("/admin/metrics")
+            assert res.status_code == 200
+            data = res.json()
+            assert "oci2" in data
+            if data["oci2"]:
+                assert "cpu_percent" in data["oci2"]
+                assert "total_gb" in data["oci2"]
+
+    def test_list_db_tables(self, client: TestClient):
+        """DB 테이블 목록 조회"""
+        res = client.get("/admin/db/tables")
+        assert res.status_code == 200
+        assert "tables" in res.json()
+        assert len(res.json()["tables"]) > 0
+
+    def test_query_db_table(self, client: TestClient):
+        """특정 테이블 데이터 조회"""
+        res = client.get("/admin/db/query/tbl_sec_reports")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["table"] == "tbl_sec_reports"
+        assert "columns" in data
+        assert "data" in data
+
 
 class TestAdminLogs:
     """로그 브라우징"""

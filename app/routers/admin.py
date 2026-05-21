@@ -191,6 +191,7 @@ async def get_system_metrics(current_user: dict = Depends(get_current_admin)):
             "used_gb": disk_used_gb,
             "percent": disk_percent,
         },
+        "oci2": get_oci2_metrics(),
         "database": {
             "status": "online" if db_ok else "offline",
             "latency_ms": db_latency_ms,
@@ -205,6 +206,95 @@ async def get_system_metrics(current_user: dict = Depends(get_current_admin)):
             "last_firm": last_report_firm,
         },
     }
+
+
+def get_oci2_metrics():
+    """oci2 서버의 메트릭을 SSH(config 기반)로 수집"""
+    try:
+        # top: head 5, free: bytes, df: bytes
+        cmd = "ssh oci2 'top -bn1 | head -n 5; free -b; df -b / | tail -1' 2>/dev/null"
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=3)
+        if res.returncode != 0:
+            return None
+
+        output = res.stdout
+        metrics = {}
+
+        # CPU
+        cpu_match = re.search(r"%Cpu\(s\):\s+([\d.]+)\s+us", output)
+        metrics["cpu_percent"] = float(cpu_match.group(1)) if cpu_match else 0.0
+
+        # Memory
+        mem_match = re.search(r"Mem:\s+(\d+)\s+\d+\s+(\d+)", output)
+        if mem_match:
+            total = int(mem_match.group(1))
+            used = total - int(mem_match.group(2))  # free -b gives 'available' in some versions, but here simplified
+            metrics["total_gb"] = round(total / (1024**3), 2)
+            metrics["used_gb"] = round(used / (1024**3), 2)
+            metrics["percent"] = round((used / total) * 100, 1)
+
+        # Disk
+        disk_line = output.strip().split("\n")[-1]
+        disk_parts = disk_line.split()
+        if len(disk_parts) >= 5:
+            try:
+                total = int(disk_parts[1])
+                used = int(disk_parts[2])
+                metrics["disk_total_gb"] = round(total / (1024**3), 1)
+                metrics["disk_used_gb"] = round(used / (1024**3), 1)
+                metrics["disk_percent"] = int(disk_parts[4].replace("%", ""))
+            except (ValueError, IndexError):
+                pass
+
+        return metrics if metrics else None
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# DB 테이블 뷰어
+# ---------------------------------------------------------------------------
+
+
+@router.get("/db/tables")
+async def list_db_tables(
+    current_user: dict = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """DB 테이블 목록 조회 (관리자용)"""
+    rows = db.execute(
+        text(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public' AND table_type = 'BASE TABLE' "
+            "ORDER BY table_name"
+        )
+    ).fetchall()
+    return {"tables": [r[0] for r in rows]}
+
+
+@router.get("/db/query/{table}")
+async def query_db_table(
+    table: str,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """특정 테이블 데이터 미리보기 (Read-only)"""
+    # SQL Injection 방지를 위한 테이블명 검증
+    allowed_tables = [
+        r[0]
+        for r in db.execute(
+            text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+        ).fetchall()
+    ]
+
+    if table not in allowed_tables:
+        raise HTTPException(status_code=400, detail="Invalid table name")
+
+    res = db.execute(text(f"SELECT * FROM {table} LIMIT :limit"), {"limit": limit})
+    columns = list(res.keys())
+    data = [dict(zip(columns, row)) for row in res.fetchall()]
+    return {"table": table, "columns": columns, "data": data}
 
 
 # ---------------------------------------------------------------------------

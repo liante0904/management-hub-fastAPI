@@ -81,3 +81,10 @@ class TestToggleAdmin:
         res = client.put("/api/users/1/admin", json={"is_admin": False})
         assert res.status_code == 200
         assert res.json()["is_admin"] is False
+
+
+class TestDeleteUser:
+    def test_delete_user(self, client: TestClient):
+        res = client.delete("/api/users/3")
+        assert res.status_code == 200
+        assert res.json()["deleted"] is True

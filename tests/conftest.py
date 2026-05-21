@@ -35,9 +35,11 @@ class MockRow:
 
 class MockResult:
     """SQLAlchemy Result를 흉내내는 mock"""
-    def __init__(self, rows, rowcount=None):
+
+    def __init__(self, rows, rowcount=None, keys=None):
         self._rows = rows
         self._rowcount = rowcount if rowcount is not None else len(rows)
+        self._keys = keys or []
 
     def first(self):
         return self._rows[0] if self._rows else None
@@ -48,6 +50,9 @@ class MockResult:
     def scalar(self):
         row = self.first()
         return row[0] if row else None
+
+    def keys(self):
+        return self._keys
 
     @property
     def rowcount(self):
@@ -162,6 +167,21 @@ class MockDBSession:
             return MockResult([
                 MockRow(1, 100, 1, "삼성전자", "2025-01-01 12:00:00"),
             ])
+
+        # ── information_schema (DB Viewer) ──
+        if "information_schema.tables" in stmt_lower:
+            return MockResult([
+                MockRow("tbl_sec_reports"),
+                MockRow("tbm_sec_reports_telegram_users"),
+                MockRow("tbm_sec_firm_info"),
+            ], keys=["table_name"])
+
+        # ── Generic table query ──
+        if "select * from" in stmt_lower:
+            return MockResult([
+                MockRow(1, "Data 1"),
+                MockRow(2, "Data 2"),
+            ], keys=["id", "name"])
 
         # ── admin / metrics ──
         if "select 1" in stmt_lower:
