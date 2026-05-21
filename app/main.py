@@ -9,14 +9,24 @@ Management Hub FastAPI — 통합 관리 API 서버
   - (추후) 데이터 후처리, 정합성 검사 등 추가
 """
 import logging
+import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from jose import jwt
+from pydantic import BaseModel
 
 from .routers import admin_router, firms_router, reports_router, users_router
 
 logger = logging.getLogger("management-hub")
+
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+JWT_ALGORITHM = "HS256"
+
+
+class LoginRequest(BaseModel):
+    secret: str
 
 
 @asynccontextmanager
@@ -51,3 +61,14 @@ app.include_router(firms_router)
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "management-hub"}
+
+
+@app.post("/api/auth/login")
+async def login(body: LoginRequest):
+    """JWT Secret Key를 입력받아 admin 토큰 발급"""
+    if not JWT_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="JWT secret not configured")
+    if body.secret != JWT_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Invalid secret key")
+    token = jwt.encode({"sub": "admin", "type": "access"}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return {"access_token": token, "token_type": "bearer"}

@@ -63,6 +63,11 @@ async def get_current_admin(
     """JWT 검증 + User DB 조회 + admin 체크"""
     payload = decode_token(token)
     user_id = payload["sub"]
+
+    # login 엔드포인트에서 발급된 admin token
+    if user_id == "admin":
+        return {"user_id": 0, "is_admin": True}
+
     try:
         result = db.execute(
             text("SELECT id, is_admin FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
