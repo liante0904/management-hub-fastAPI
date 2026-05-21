@@ -73,8 +73,17 @@ class MockDBSession:
             elif " delete " in _w:
                 self._committed = True
                 return MockResult([MockRow(1)])
+            elif " insert " in _w:
+                self._committed = True
+                return MockResult([MockRow(1)])
             elif "count(*)" in stmt_lower:
                 return MockResult([MockRow(3)])
+            elif "id, status, is_admin" in stmt_lower.replace(" ", ""):
+                return MockResult([MockRow(1, "active", True)])
+            elif "id, first_name, last_name, username, status, is_admin" in stmt_lower.replace(" ", ""):
+                return MockResult([MockRow(1, "John", "Doe", "johndoe", "active", True)])
+            elif "id, is_admin" in stmt_lower.replace(" ", "") and "status," not in stmt_lower.replace(" ", ""):
+                return MockResult([MockRow(1, True)])
             elif "where id = " in stmt_lower or "where id=" in stmt_lower.replace(" ", ""):
                 return MockResult([MockRow(1, "John", "Doe", "johndoe", None, "active", True, 1700000000)])
             else:

@@ -103,7 +103,7 @@ async def auth_telegram(user_data: TelegramUser, db: Session = Depends(get_db)):
         {"uid": user_data.id},
     ).first()
 
-    is_admin = row.is_admin if row else False
+    is_admin = row[2] if row else False
 
     if not is_admin:
         raise HTTPException(
@@ -116,7 +116,7 @@ async def auth_telegram(user_data: TelegramUser, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": {"id": row.id, "status": row.status, "is_admin": row.is_admin},
+        "user": {"id": row[0], "status": row[1], "is_admin": row[2]},
     }
 
 
@@ -132,5 +132,5 @@ async def auth_me(
     ).first()
     if not row:
         raise HTTPException(status_code=404)
-    return {"id": row.id, "first_name": row.first_name, "last_name": row.last_name,
-            "username": row.username, "status": row.status, "is_admin": row.is_admin}
+    return {"id": row[0], "first_name": row[1], "last_name": row[2],
+            "username": row[3], "status": row[4], "is_admin": row[5]}
