@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/management-hub-fastapi
+  IMAGE_NAME: ${{ github.repository_owner }}/ssh-management-hub
 
 permissions:
   contents: read
@@ -86,7 +86,7 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
           REPO_OWNER: ${{ github.repository_owner }}
           GITHUB_ACTOR: ${{ github.actor }}
-          APP_DIR: /home/ubuntu/workspace/management-hub-fastAPI
+          APP_DIR: /home/ubuntu/workspace/ssh-management-hub
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -106,7 +106,7 @@ jobs:
             docker compose pull
             docker compose up -d --no-build --force-recreate
 
-            CONTAINER_NAME="management-hub-fastapi-prod"
+            CONTAINER_NAME="ssh-management-hub-prod"
             RUNNING_SHA="$(docker inspect "${CONTAINER_NAME}" --format '{{ index .Config.Labels `org.opencontainers.image.revision` }}')"
             echo "Successfully deployed revision: ${RUNNING_SHA}"
             docker image prune -f

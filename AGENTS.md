@@ -44,7 +44,7 @@ python3 ~/secrets/generate_env.py management-hub
 internal.management-hub/
 ├── apps/
 │   ├── backend/
-│   │   └── management-hub-fastAPI/    ← FastAPI 백엔드 (이 프로젝트)
+│   │   └── ssh-management-hub/    ← FastAPI 백엔드 (이 프로젝트)
 │   ├── frontend/
 │   │   └── system-console/            ← React 프론트엔드 (Netlify 배포)
 │   └── scrapers/                      ← (확장 예정)
@@ -58,7 +58,7 @@ internal.management-hub/
 
 | Container | Role |
 |-----------|------|
-| `management-hub-fastapi-prod` | Management Hub API (이 프로젝트) |
+| `ssh-management-hub-prod` | Management Hub API (이 프로젝트) |
 | `management-nginx` | Management Hub 전용 리버스 프록시 |
 | `internal-nginx` | 메인 도메인 인그레스 (private-hub 소속) |
 | `main-postgres` | 메인 DB (`ssh_reports_hub`) |
@@ -66,7 +66,7 @@ internal.management-hub/
 ## Deploy Flow
 
 1. oci2에서 git push → GitHub Actions (`deploy.yml`) 트리거
-2. GHCR에 Docker 이미지 빌드 & 푸시 (`ghcr.io/liante0904/management-hub-fastapi`)
+2. GHCR에 Docker 이미지 빌드 & 푸시 (`ghcr.io/liante0904/ssh-management-hub`)
 3. SSH로 oci 접속 → `docker compose pull && docker compose up -d`
 4. `deploy_prepare.py`로 git sync + `.env` 생성 포함
 5. Netlify는 프론트엔드 레포 main 푸시 시 자동 배포
@@ -74,7 +74,7 @@ internal.management-hub/
 ## Project Structure
 
 ```
-management-hub-fastAPI/
+ssh-management-hub/
 ├── app/
 │   ├── main.py               ← FastAPI 진입점 (라우터 등록)
 │   ├── database.py            ← 공통 DB 세션 (PostgreSQL)

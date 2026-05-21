@@ -1,12 +1,12 @@
 # CI/CD 설정 가이드
 
-> management-hub-fastAPI GitHub Actions 배포 파이프라인 설정
+> ssh-management-hub GitHub Actions 배포 파이프라인 설정
 
 ---
 
 ## 1. GitHub Secrets 등록
 
-등록 위치: `https://github.com/liante0904/management-hub-fastAPI/settings/secrets/actions`
+등록 위치: `https://github.com/liante0904/ssh-management-hub/settings/secrets/actions`
 
 ### 등록할 4개 Secrets
 
@@ -52,7 +52,7 @@ GitHub 레포 → Settings → Secrets and variables → Actions
 ssh oci
 
 # 디렉토리 생성
-mkdir -p /home/ubuntu/workspace/management-hub-fastAPI
+mkdir -p /home/ubuntu/workspace/ssh-management-hub
 ```
 
 ---
@@ -70,7 +70,7 @@ python3 ~/secrets/generate_env.py management-hub
 
 ```bash
 # oci에서 internal-nginx 설정 편집
-# /admin/ → management-hub-fastapi-prod:8000
+# /admin/ → ssh-management-hub-prod:8000
 ```
 
 ---
@@ -79,7 +79,7 @@ python3 ~/secrets/generate_env.py management-hub
 
 ```bash
 # git push
-cd ~/workspace/management-hub-fastAPI
+cd ~/workspace/ssh-management-hub
 git push origin main
 
 # GitHub Actions 로그 확인
@@ -102,7 +102,7 @@ git push (main)
 GitHub Actions: Build & Push
   ├── pytest tests/ (PostgreSQL service)
   ├── docker build (linux/arm64)
-  └── docker push → ghcr.io/liante0904/management-hub-fastapi
+  └── docker push → ghcr.io/liante0904/ssh-management-hub
   │
   ▼
 GitHub Actions: Deploy
@@ -112,7 +112,7 @@ GitHub Actions: Deploy
   └── docker compose up -d --force-recreate
   │
   ▼
-oci: management-hub-fastapi-prod (port 8003)
+oci: ssh-management-hub-prod (port 8003)
   └── internal-nginx → /admin/* → :8000
 ```
 
