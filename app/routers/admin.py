@@ -232,8 +232,8 @@ def get_oci2_metrics():
     else:
         ssh_target = oci2_host
 
-    # 원격 명령어
-    remote_cmd = "top -bn1 | head -n 5; free -b; df -b / | tail -1"
+    # 원격 명령어 (LANG=C로 영어 출력 강제)
+    remote_cmd = "LANG=C top -bn1 | head -n 5; LANG=C free -b; LANG=C df -B1 / | tail -1"
 
     try:
         cmd = f"ssh {ssh_opts} {ssh_target} '{remote_cmd}'"
