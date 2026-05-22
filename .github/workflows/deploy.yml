@@ -109,4 +109,9 @@ jobs:
             CONTAINER_NAME="ssh-management-hub-fastapi-prod"
             RUNNING_SHA="$(docker inspect "${CONTAINER_NAME}" --format '{{ index .Config.Labels `org.opencontainers.image.revision` }}')"
             echo "Successfully deployed revision: ${RUNNING_SHA}"
+
+            # nginx 리로드 (컨테이너 IP 변경 반영)
+            docker exec internal-nginx nginx -s reload 2>/dev/null || true
+            docker exec main-nginx nginx -s reload 2>/dev/null || true
+
             docker image prune -f
