@@ -27,6 +27,10 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+class LoginRequest(BaseModel):
+    secret: str
+
+
 class TelegramUser(BaseModel):
     id: int
     first_name: str = ""
@@ -133,6 +137,30 @@ async def auth_telegram(user_data: TelegramUser, db: Session = Depends(get_db)):
         "access_token": token,
         "token_type": "bearer",
         "user": {"id": row[0], "status": row[1], "is_admin": row[2]},
+    }
+
+
+@router.post("/login")
+async def emergency_login(body: LoginRequest):
+    """비상 JWT Secret Key 로그인"""
+    if not JWT_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="JWT secret not configured")
+    if body.secret != JWT_SECRET_KEY:
+        logger.warning("Emergency login rejected: invalid secret")
+        raise HTTPException(status_code=401, detail="Invalid secret key")
+
+    # admin용 JWT 발급 (sub="admin"으로 admin bypass)
+    from jose import jwt as jose_jwt
+    token = jose_jwt.encode(
+        {"sub": "admin", "type": "access"},
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
+    logger.info("Emergency admin login successful")
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {"id": 0, "first_name": "Admin", "is_admin": True},
     }
 
 
