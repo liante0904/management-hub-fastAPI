@@ -232,8 +232,8 @@ def get_oci2_metrics():
     else:
         ssh_target = oci2_host
 
-    # 원격 명령어 (LANG=C로 영어 출력 강제)
-    remote_cmd = "LANG=C top -bn1 | head -n 5; LANG=C free -b; LANG=C df -B1 / | tail -1"
+    # 원격 명령어 (LC_ALL=C로 영어 출력 강제)
+    remote_cmd = "LC_ALL=C top -bn1 | head -n 5; LC_ALL=C free -b; LC_ALL=C df -B1 / | tail -1"
 
     try:
         cmd = f"ssh {ssh_opts} {ssh_target} '{remote_cmd}'"
@@ -260,8 +260,8 @@ def get_oci2_metrics():
         cpu_match = re.search(r"%Cpu\(s\):\s+([\d.]+)\s+us", output)
         metrics["cpu_percent"] = float(cpu_match.group(1)) if cpu_match else 0.0
 
-        # Memory (free -b 출력에서 Mem: 라인 파싱)
-        mem_match = re.search(r"Mem:\s+(\d+)\s+(\d+)\s+(\d+)", output)
+        # Memory (free -b 출력에서 Mem:/메모리: 라인 파싱)
+        mem_match = re.search(r"(?:Mem|메모리):\s+(\d+)\s+(\d+)\s+(\d+)", output)
         if mem_match:
             total = int(mem_match.group(1))
             used  = int(mem_match.group(2))
