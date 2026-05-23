@@ -61,7 +61,7 @@ mkdir -p /home/ubuntu/workspace/ssh-management-hub
 
 ```bash
 # oci2에서
-python3 ~/secrets/generate_env.py management-hub
+python3 ~/secrets/generate_env.py "$PWD"
 ```
 
 ---

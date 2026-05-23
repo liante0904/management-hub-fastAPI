@@ -32,7 +32,7 @@ oci2 (개발)                        oci (운영)
 
 ```bash
 # .env 생성
-python3 ~/secrets/generate_env.py management-hub
+python3 ~/secrets/generate_env.py "$PWD"
 ```
 
 - `.env`는 Git에 포함되지 않음 (`.gitignore`)

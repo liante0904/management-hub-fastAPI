@@ -1,4 +1,4 @@
-SECRETS := python3 $(HOME)/secrets/generate_env.py management-hub
+SECRETS := python3 $(HOME)/secrets/generate_env.py $(CURDIR)
 COMPOSE := docker compose
 UV      := uv
 
