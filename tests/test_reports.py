@@ -153,8 +153,11 @@ class TestListPdfArchive:
         data = res.json()
         assert "items" in data
         assert "total" in data
+        assert "summary" in data
         assert data["total"] == 100
         assert len(data["items"]) == 2
+        assert "archived" in data["summary"]
+        assert "failed" in data["summary"]
 
     def test_list_pdf_archive_pagination(self, client: TestClient):
         res = client.get("/api/reports/pdf-archive?page=1&page_size=10")

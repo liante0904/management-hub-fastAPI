@@ -170,6 +170,8 @@ class MockDBSession:
                 else:
                     return MockResult([MockRow(100)])
             elif "count(*)" in stmt_lower:
+                if "archive_status = 'ARCHIVED'" in stmt_lower or "archive_status !=" in stmt_lower or "archive_status is null" in stmt_lower:
+                    return MockResult([MockRow(90)]) if "ARCHIVED" in stmt_lower and "!=" not in stmt_lower else MockResult([MockRow(10)])
                 return MockResult([MockRow(100)])
             elif "select report_id, firm_nm, title" in stmt_lower:
                 # list_pdf_archive — 17개 컬럼

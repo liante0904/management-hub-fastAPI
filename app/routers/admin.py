@@ -294,80 +294,23 @@ def get_oci2_metrics():
 
 
 def get_oci_metrics():
-    """OCI (배포서버) 서버의 메트릭을 SSH로 수집 (환경변수로 설정)"""
-    oci_host = os.getenv("OCI_SSH_HOST", "oci")
-    oci_user = os.getenv("OCI_SSH_USER", "")
-    oci_key  = os.getenv("OCI_SSH_KEY", "")
-    oci_port = os.getenv("OCI_SSH_PORT", "22")
-    oci_timeout = int(os.getenv("OCI_SSH_TIMEOUT", "5"))
-
-    ssh_opts = "-o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes"
-    if oci_key:
-        ssh_opts += f" -i {oci_key}"
-    if oci_port != "22":
-        ssh_opts += f" -p {oci_port}"
-
-    if oci_user:
-        ssh_target = f"{oci_user}@{oci_host}"
-    else:
-        ssh_target = oci_host
-
-    remote_cmd = "LC_ALL=C top -bn1 | head -n 5; LC_ALL=C free -b; LC_ALL=C df -B1 / | tail -1"
-
+    """OCI (배포서버=자기자신) 메트릭을 로컬 psutil로 수집"""
+    import psutil as _psutil
     try:
-        cmd = f"ssh {ssh_opts} {ssh_target} '{remote_cmd}'"
-        logger.info("OCI SSH command: %s", cmd)
-
-        res = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True,
-            timeout=oci_timeout
-        )
-
-        if res.returncode != 0:
-            stderr = res.stderr.strip() if res.stderr else "(no stderr)"
-            logger.warning("OCI SSH failed (exit=%d): %s", res.returncode, stderr[:300])
-            return None
-
-        output = res.stdout
-        if not output.strip():
-            logger.warning("OCI SSH returned empty output")
-            return None
-
-        metrics = {}
-
-        # CPU
-        cpu_match = re.search(r"%Cpu\(s\):\s+([\d.]+)\s+us", output)
-        metrics["cpu_percent"] = float(cpu_match.group(1)) if cpu_match else 0.0
-
-        # Memory
-        mem_match = re.search(r"(?:Mem|메모리):\s+(\d+)\s+(\d+)\s+(\d+)", output)
-        if mem_match:
-            total = int(mem_match.group(1))
-            used  = int(mem_match.group(2))
-            metrics["total_gb"] = round(total / (1024**3), 2)
-            metrics["used_gb"] = round(used / (1024**3), 2)
-            metrics["percent"] = round((used / total) * 100, 1) if total > 0 else 0.0
-
-        # Disk
-        disk_line = output.strip().split("\n")[-1]
-        disk_parts = disk_line.split()
-        if len(disk_parts) >= 5:
-            try:
-                total = int(disk_parts[1])
-                used = int(disk_parts[2])
-                metrics["disk_total_gb"] = round(total / (1024**3), 1)
-                metrics["disk_used_gb"] = round(used / (1024**3), 1)
-                metrics["disk_percent"] = int(disk_parts[4].replace("%", ""))
-            except (ValueError, IndexError):
-                pass
-
-        return metrics if metrics else None
-
-    except subprocess.TimeoutExpired:
-        logger.warning("OCI SSH timed out after %ds", oci_timeout)
-        return None
+        cpu = _psutil.cpu_percent(interval=0.3)
+        mem = _psutil.virtual_memory()
+        disk = _psutil.disk_usage("/")
+        return {
+            "cpu_percent": round(cpu, 1),
+            "total_gb": round(mem.total / (1024**3), 2),
+            "used_gb": round(mem.used / (1024**3), 2),
+            "percent": round(mem.percent, 1),
+            "disk_total_gb": round(disk.total / (1024**3), 1),
+            "disk_used_gb": round(disk.used / (1024**3), 1),
+            "disk_percent": round(disk.percent, 1),
+        }
     except Exception as e:
-        logger.warning("OCI SSH unexpected error: %s", e)
+        logger.warning("OCI local psutil failed: %s", e)
         return None
 
 
@@ -413,8 +356,32 @@ async def query_db_table(
 
     res = db.execute(text(f"SELECT * FROM {table} LIMIT :limit"), {"limit": limit})
     columns = list(res.keys())
-    data = [dict(zip(columns, row)) for row in res.fetchall()]
+    data = [_serialize_row(columns, row) for row in res.fetchall()]
     return {"table": table, "columns": columns, "data": data}
+
+
+def _serialize_row(columns, row):
+    """JSON 직렬화 가능한 타입으로 변환 (datetime, Decimal, bytes, UUID 등)"""
+    from datetime import date as _date, datetime as _dt, time as _time
+    from decimal import Decimal as _Decimal
+    result = {}
+    for col, val in zip(columns, row):
+        if val is None:
+            result[col] = None
+        elif isinstance(val, (_dt, _date, _time)):
+            result[col] = val.isoformat()
+        elif isinstance(val, _Decimal):
+            result[col] = float(val)
+        elif isinstance(val, (bytes, bytearray, memoryview)):
+            result[col] = f"<binary:{len(val)} bytes>"
+        elif hasattr(val, "isoformat"):
+            result[col] = val.isoformat()
+        else:
+            try:
+                result[col] = str(val) if not isinstance(val, (int, float, bool, str)) else val
+            except Exception:
+                result[col] = repr(val)
+    return result
 
 
 # ---------------------------------------------------------------------------

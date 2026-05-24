@@ -137,11 +137,17 @@ class PdfArchiveItemOut(BaseModel):
     updated_at: Optional[str] = None
 
 
+class PdfArchiveSummary(BaseModel):
+    archived: int = 0
+    failed: int = 0
+
+
 class PdfArchiveListOut(BaseModel):
     items: list[PdfArchiveItemOut]
     total: int
     page: int
     page_size: int
+    summary: PdfArchiveSummary = PdfArchiveSummary()
 
 
 class DailyPdfStats(BaseModel):
@@ -377,6 +383,15 @@ async def list_pdf_archive(
     sort_col = sort if sort in allowed_sorts else "report_id DESC"
 
     total = db.execute(text(f"SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive {where_clause}"), params).scalar() or 0
+
+    # Summary: 전체 archived / failed 카운트 (필터 무관 — 전체 집계)
+    summary_archived = db.execute(
+        text("SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive WHERE archive_status = 'ARCHIVED'")
+    ).scalar() or 0
+    summary_failed = db.execute(
+        text("SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive WHERE archive_status != 'ARCHIVED' OR archive_status IS NULL")
+    ).scalar() or 0
+
     offset = (page - 1) * page_size
 
     rows = db.execute(
@@ -402,7 +417,10 @@ async def list_pdf_archive(
         )
         for r in rows
     ]
-    return PdfArchiveListOut(items=items, total=total, page=page, page_size=page_size)
+    return PdfArchiveListOut(
+        items=items, total=total, page=page, page_size=page_size,
+        summary=PdfArchiveSummary(archived=summary_archived, failed=summary_failed),
+    )
 
 
 @router.get("/pdf-archive/stats/daily", response_model=list[DailyPdfStats])
