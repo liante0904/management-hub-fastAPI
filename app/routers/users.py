@@ -87,12 +87,12 @@ async def list_users(
 
     where_clause = ("WHERE " + " AND ".join(where)) if where else ""
 
-    total = db.execute(text(f"SELECT COUNT(*) FROM tbm_sec_reports_telegram_users {where_clause}"), params).scalar() or 0
+    total = db.execute(text(f"SELECT COUNT(*) FROM tbl_sec_reports_telegram_users {where_clause}"), params).scalar() or 0
     offset = (page - 1) * page_size
     rows = db.execute(
         text(
             f"SELECT id, first_name, last_name, username, photo_url, status, is_admin, created_at "
-            f"FROM tbm_sec_reports_telegram_users {where_clause} "
+            f"FROM tbl_sec_reports_telegram_users {where_clause} "
             f"ORDER BY id ASC LIMIT :limit OFFSET :offset"
         ),
         {**params, "limit": page_size, "offset": offset},
@@ -118,7 +118,7 @@ async def get_user(
     row = db.execute(
         text(
             "SELECT id, first_name, last_name, username, photo_url, status, is_admin, created_at "
-            "FROM tbm_sec_reports_telegram_users WHERE id = :uid"
+            "FROM tbl_sec_reports_telegram_users WHERE id = :uid"
         ),
         {"uid": user_id},
     ).first()
@@ -143,7 +143,7 @@ async def update_user_status(
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
 
     result = db.execute(
-        text("UPDATE tbm_sec_reports_telegram_users SET status = :status WHERE id = :uid"),
+        text("UPDATE tbl_sec_reports_telegram_users SET status = :status WHERE id = :uid"),
         {"status": body.status, "uid": user_id},
     )
     db.commit()
@@ -161,7 +161,7 @@ async def toggle_admin(
 ):
     """admin 권한 부여/회수"""
     result = db.execute(
-        text("UPDATE tbm_sec_reports_telegram_users SET is_admin = :is_admin WHERE id = :uid"),
+        text("UPDATE tbl_sec_reports_telegram_users SET is_admin = :is_admin WHERE id = :uid"),
         {"is_admin": body.is_admin, "uid": user_id},
     )
     db.commit()
@@ -178,7 +178,7 @@ async def delete_user(
 ):
     """유저 삭제 (관리자 전용)"""
     result = db.execute(
-        text("DELETE FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
+        text("DELETE FROM tbl_sec_reports_telegram_users WHERE id = :uid"),
         {"uid": user_id},
     )
     db.commit()

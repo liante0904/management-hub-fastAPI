@@ -93,14 +93,14 @@ async def auth_telegram(user_data: TelegramUser, db: Session = Depends(get_db)):
 
     # 2. DB upsert
     existing = db.execute(
-        text("SELECT id, is_admin FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
+        text("SELECT id, is_admin FROM tbl_sec_reports_telegram_users WHERE id = :uid"),
         {"uid": user_data.id},
     ).first()
 
     if existing:
         db.execute(
             text(
-                "UPDATE tbm_sec_reports_telegram_users "
+                "UPDATE tbl_sec_reports_telegram_users "
                 "SET first_name = :fn, last_name = :ln, username = :un, photo_url = :pu WHERE id = :uid"
             ),
             {"fn": user_data.first_name, "ln": user_data.last_name,
@@ -109,7 +109,7 @@ async def auth_telegram(user_data: TelegramUser, db: Session = Depends(get_db)):
     else:
         db.execute(
             text(
-                "INSERT INTO tbm_sec_reports_telegram_users (id, first_name, last_name, username, photo_url) "
+                "INSERT INTO tbl_sec_reports_telegram_users (id, first_name, last_name, username, photo_url) "
                 "VALUES (:uid, :fn, :ln, :un, :pu)"
             ),
             {"uid": user_data.id, "fn": user_data.first_name, "ln": user_data.last_name,
@@ -119,7 +119,7 @@ async def auth_telegram(user_data: TelegramUser, db: Session = Depends(get_db)):
 
     # 3. admin 체크
     row = db.execute(
-        text("SELECT id, status, is_admin FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
+        text("SELECT id, status, is_admin FROM tbl_sec_reports_telegram_users WHERE id = :uid"),
         {"uid": user_data.id},
     ).first()
 
@@ -171,7 +171,7 @@ async def auth_me(
 ):
     """현재 로그인된 관리자 정보"""
     row = db.execute(
-        text("SELECT id, first_name, last_name, username, status, is_admin FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
+        text("SELECT id, first_name, last_name, username, status, is_admin FROM tbl_sec_reports_telegram_users WHERE id = :uid"),
         {"uid": current_user["user_id"]},
     ).first()
     if not row:

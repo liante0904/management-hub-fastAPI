@@ -71,7 +71,7 @@ class MockDBSession:
         _w = f" {stmt_lower} "
 
         # ── users ──
-        if "tbm_sec_reports_telegram_users" in stmt_lower:
+        if "tbl_sec_reports_telegram_users" in stmt_lower:
             if " update " in _w:
                 self._committed = True
                 return MockResult([MockRow(1)])
@@ -211,7 +211,7 @@ class MockDBSession:
         if "information_schema.tables" in stmt_lower:
             return MockResult([
                 MockRow("tbl_sec_reports"),
-                MockRow("tbm_sec_reports_telegram_users"),
+                MockRow("tbl_sec_reports_telegram_users"),
                 MockRow("tbm_sec_firm_info"),
             ], keys=["table_name"])
 

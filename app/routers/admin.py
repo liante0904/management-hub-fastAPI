@@ -73,7 +73,7 @@ async def get_current_admin(
 
     try:
         result = db.execute(
-            text("SELECT id, is_admin FROM tbm_sec_reports_telegram_users WHERE id = :uid"),
+            text("SELECT id, is_admin FROM tbl_sec_reports_telegram_users WHERE id = :uid"),
             {"uid": int(user_id)},
         ).first()
     except Exception as e:
