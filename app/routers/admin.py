@@ -340,6 +340,9 @@ async def list_db_tables(
 async def query_db_table(
     table: str,
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    order_by: Optional[str] = Query(None),
+    order_dir: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
@@ -355,14 +358,47 @@ async def query_db_table(
     if table not in allowed_tables:
         raise HTTPException(status_code=400, detail="Invalid table name")
 
+    # ORDER BY 검증 (SQL Injection 방지)
+    order_clause = ""
+    if order_by:
+        # 컬럼명은 실제 테이블 컬럼으로만 제한
+        try:
+            col_check = db.execute(text(f"SELECT * FROM {table} LIMIT 0"))
+            allowed_cols = list(col_check.keys())
+        except Exception:
+            allowed_cols = []
+        if order_by in allowed_cols:
+            direction = "ASC" if (order_dir or "ASC").upper() == "ASC" else "DESC"
+            order_clause = f" ORDER BY {order_by} {direction}"
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid column: {order_by}")
+
     try:
-        res = db.execute(text(f"SELECT * FROM {table} LIMIT :limit"), {"limit": limit})
+        query = f"SELECT * FROM {table}{order_clause} LIMIT :limit OFFSET :offset"
+        res = db.execute(text(query), {"limit": limit, "offset": offset})
         columns = list(res.keys())
         data = [_serialize_row(columns, row) for row in res.fetchall()]
         return {"table": table, "columns": columns, "data": data}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.warning("DB query failed for table=%s: %s", table, e)
-        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)[:200]}")
+        err_msg = str(e)
+        logger.warning("DB query failed for table=%s: %s", table, err_msg)
+
+        if "permission denied" in err_msg.lower():
+            raise HTTPException(
+                status_code=403,
+                detail=f"접근 권한이 없습니다: {table} 테이블에 대한 SELECT 권한이 필요합니다.",
+            )
+        if "does not exist" in err_msg.lower() or "not found" in err_msg.lower():
+            raise HTTPException(
+                status_code=404,
+                detail=f"테이블이 존재하지 않습니다: {table}",
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=f"쿼리 실패 ({table}): {err_msg[:200]}",
+        )
 
 
 def _serialize_row(columns, row):
