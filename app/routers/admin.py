@@ -403,6 +403,7 @@ async def query_db_table(
 
 def _serialize_row(columns, row):
     """JSON 직렬화 가능한 타입으로 변환 (datetime, Decimal, bytes, UUID, PG array 등)"""
+    import math
     from datetime import date as _date, datetime as _dt, time as _time
     from decimal import Decimal as _Decimal
     result = {}
@@ -418,7 +419,14 @@ def _serialize_row(columns, row):
                 result[col] = f"<binary:{len(val)} bytes>"
             elif hasattr(val, "isoformat"):
                 result[col] = val.isoformat()
-            elif isinstance(val, (int, float, bool, str)):
+            elif isinstance(val, float):
+                if math.isnan(val):
+                    result[col] = None  # NaN → null
+                elif math.isinf(val):
+                    result[col] = None  # Infinity → null
+                else:
+                    result[col] = val
+            elif isinstance(val, (int, bool, str)):
                 result[col] = val
             else:
                 try:
