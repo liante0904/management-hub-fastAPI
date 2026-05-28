@@ -207,13 +207,13 @@ class MockDBSession:
                 MockRow(1, 100, 1, "삼성전자", "2025-01-01 12:00:00"),
             ])
 
-        # ── information_schema (DB Viewer) ──
+        # ── information_schema + pg_class (DB Viewer) ──
         if "information_schema.tables" in stmt_lower:
             return MockResult([
-                MockRow("tbl_sec_reports"),
-                MockRow("tbl_sec_reports_telegram_users"),
-                MockRow("tbm_sec_firm_info"),
-            ], keys=["table_name"])
+                MockRow("tbl_sec_reports", "증권사 레포트"),
+                MockRow("tbl_sec_reports_telegram_users", "텔레그램 유저"),
+                MockRow("tbm_sec_firm_info", "증권사 정보"),
+            ], keys=["table_name", "comment"])
 
         # ── Generic table query ──
         if "select * from" in stmt_lower:

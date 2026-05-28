@@ -328,25 +328,16 @@ async def list_db_tables(
     """DB 테이블 목록 조회 (관리자용)"""
     rows = db.execute(
         text(
-            "SELECT table_name FROM information_schema.tables "
-            "WHERE table_schema = 'public' AND table_type = 'BASE TABLE' "
-            "ORDER BY table_name"
+            "SELECT t.table_name, pg_catalog.obj_description(c.oid, 'pg_class') AS comment "
+            "FROM information_schema.tables t "
+            "JOIN pg_catalog.pg_class c ON c.relname = t.table_name "
+            "AND c.relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = 'public') "
+            "WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE' "
+            "ORDER BY t.table_name"
         )
     ).fetchall()
-    table_names = [r[0] for r in rows]
 
-    # Fetch table comments
-    result = []
-    for name in table_names:
-        try:
-            comment = db.execute(
-                text("SELECT obj_description(:tbl::regclass, 'pg_class')"),
-                {"tbl": name},
-            ).scalar()
-        except Exception:
-            comment = None
-        result.append({"name": name, "comment": comment})
-
+    result = [{"name": r[0], "comment": r[1]} for r in rows]
     return {"tables": result}
 
 
@@ -398,12 +389,15 @@ async def query_db_table(
         try:
             comment_rows = db.execute(
                 text(
-                    "SELECT column_name, pg_catalog.col_description(:tbl::regclass, ordinal_position::int) AS comment "
-                    "FROM information_schema.columns "
-                    "WHERE table_schema = 'public' AND table_name = :tbl_name "
-                    "ORDER BY ordinal_position"
+                    "SELECT a.attname AS column_name, pg_catalog.col_description(c.oid, a.attnum) AS comment "
+                    "FROM pg_catalog.pg_attribute a "
+                    "JOIN pg_catalog.pg_class c ON c.oid = a.attrelid "
+                    "JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace "
+                    "WHERE n.nspname = 'public' AND c.relname = :tbl_name "
+                    "AND a.attnum > 0 AND NOT a.attisdropped "
+                    "ORDER BY a.attnum"
                 ),
-                {"tbl": table, "tbl_name": table},
+                {"tbl_name": table},
             ).fetchall()
             for cr in comment_rows:
                 if cr[1]:
