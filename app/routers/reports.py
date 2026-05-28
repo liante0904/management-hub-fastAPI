@@ -386,13 +386,13 @@ async def list_pdf_archive(
     total = db.execute(text(f"SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive {where_clause}"), params).scalar() or 0
 
     # Summary: 전체 집계 (필터 무관)
-    # 완료 = archive_status='ARCHIVED' 이면서 sync_status가 실패(9,-1)가 아닌 건
-    # 미완료 = 그 외 전부 (INIT, NULL, sync 실패 등)
+    # 완료 = archive_status='ARCHIVED' 이면서 pdf_sync_status가 실패(3,9,-1)가 아닌 건
+    # ※ sync_status는 pdf-archiver가 갱신하지 않는 legacy 컬럼. pdf_sync_status로 집계.
     summary_total = db.execute(
         text("SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive")
     ).scalar() or 0
     summary_archived = db.execute(
-        text("SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive WHERE archive_status = 'ARCHIVED' AND COALESCE(sync_status, 0) NOT IN (9, -1)")
+        text("SELECT COUNT(*) FROM tbl_sec_reports_pdf_archive WHERE archive_status = 'ARCHIVED' AND COALESCE(pdf_sync_status, 0) NOT IN (3, 9, -1)")
     ).scalar() or 0
     summary_failed = summary_total - summary_archived
 
@@ -438,8 +438,8 @@ async def pdf_archive_stats_daily(
         text(
             "SELECT to_char(created_at::date, 'YYYY-MM-DD') as dt, "
             "COUNT(*) as total, "
-            "COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(sync_status, 0) NOT IN (9, -1)) as archived, "
-            "COUNT(*) - COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(sync_status, 0) NOT IN (9, -1)) as failed "
+            "COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(pdf_sync_status, 0) NOT IN (3, 9, -1)) as archived, "
+            "COUNT(*) - COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(pdf_sync_status, 0) NOT IN (3, 9, -1)) as failed "
             "FROM tbl_sec_reports_pdf_archive "
             "WHERE created_at >= now() - (:days || ' days')::interval "
             "GROUP BY created_at::date ORDER BY dt DESC"
@@ -459,8 +459,8 @@ async def pdf_archive_stats_by_firm(
         text(
             "SELECT COALESCE(firm_nm, 'Unknown') as firm_nm, "
             "COUNT(*) as total, "
-            "COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(sync_status, 0) NOT IN (9, -1)) as archived, "
-            "COUNT(*) - COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(sync_status, 0) NOT IN (9, -1)) as failed "
+            "COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(pdf_sync_status, 0) NOT IN (3, 9, -1)) as archived, "
+            "COUNT(*) - COUNT(*) FILTER (WHERE archive_status = 'ARCHIVED' AND COALESCE(pdf_sync_status, 0) NOT IN (3, 9, -1)) as failed "
             "FROM tbl_sec_reports_pdf_archive "
             "GROUP BY firm_nm ORDER BY total DESC"
         ),
